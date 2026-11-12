@@ -1,0 +1,43 @@
+# Example Maestro flow for an iOS role-play app.
+# This repo's mock is web-only, so this flow is a template showing how the same
+# P1 journey would be automated on iOS. It is not run in CI.
+#
+# Run against a real build:  maestro test maestro/role-play-session.yaml
+appId: com.example.roleplay
+---
+- launchApp:
+    clearState: true
+- tapOn: "Log in"
+- inputText: "test-rep@example.com"
+- tapOn: "Continue"
+
+# IOS-01: mic permission denied, then the app explains how to enable it
+- tapOn: "Start session"
+- tapOn: "Don’t Allow"
+- assertVisible: "Microphone access is needed"
+
+# Happy path once permission is granted
+- runFlow:
+    when:
+      visible: "Open Settings"
+    commands:
+      - tapOn: "Not now"
+- tapOn:
+    id: "persona-dr-okafor"
+- tapOn:
+    id: "focus-dosing"
+- tapOn: "Start session"
+- assertVisible:
+    id: "session-live-indicator"
+
+# IOS-02: backgrounding mid-session must not lose the session
+- pressKey: Home
+- launchApp
+- assertVisible:
+    id: "session-live-indicator"
+
+- tapOn: "End session"
+- assertVisible:
+    id: "score"
+- assertVisible:
+    id: "session-id"

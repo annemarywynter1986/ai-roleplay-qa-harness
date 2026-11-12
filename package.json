@@ -1,0 +1,27 @@
+{
+  "name": "ai-roleplay-qa-harness",
+  "version": "1.0.0",
+  "description": "Test automation harness for an AI sales role-play platform: rubric-based AI evals, guardrail tests, tenant isolation, role access, gamification logic, and Playwright UI tests against a runnable mock.",
+  "type": "module",
+  "private": true,
+  "author": "Anne Mary Wynter",
+  "license": "MIT",
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "playwright test",
+    "test:logic": "playwright test --project=logic",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:faults": "MOCK_FAULTS=all playwright test --reporter=list",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Role-Play Practice (mock)</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --fg:#1d2127; --muted:#5f6873; --line:#dde1e6; --accent:#2b5c8a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px; display:grid; gap:16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 10px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select, input, button { font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:6px; }
+  button { background:var(--accent); color:#fff; border-color:var(--accent); cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  #transcript p { margin:4px 0; } .rep { color:var(--accent); } .hcp { color:var(--fg); }
+  .muted { color:var(--muted); font-size:13px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Role-Play Practice <span class="muted">(mock for test automation)</span></h1>
+
+  <section id="login">
+    <h2>Log in</h2>
+    <div class="row">
+      <select data-testid="login-user" aria-label="User"></select>
+      <button data-testid="login-btn">Log in</button>
+    </div>
+  </section>
+
+  <section id="setup" hidden>
+    <p class="muted">Logged in as <b data-testid="whoami"></b></p>
+    <h2>Start a role-play</h2>
+    <div class="row">
+      <select data-testid="persona-select" aria-label="Doctor persona"></select>
+      <select data-testid="focus-select" aria-label="Call focus"></select>
+      <button data-testid="start-btn">Start session</button>
+    </div>
+  </section>
+
+  <section id="session" hidden>
+    <h2>Conversation <span class="muted">(typed text stands in for transcribed speech)</span></h2>
+    <div id="transcript" data-testid="transcript"></div>
+    <div class="row">
+      <input data-testid="rep-input" aria-label="What you say" placeholder="What you say to the doctor" style="flex:1">
+      <button data-testid="send-btn">Send</button>
+      <button data-testid="end-btn">End session</button>
+    </div>
+  </section>
+
+  <section id="results" hidden>
+    <h2>Results</h2>
+    <p>Score: <b data-testid="score"></b> · Session ID: <code data-testid="session-id"></code></p>
+    <ul data-testid="feedback"></ul>
+  </section>
+
+  <section id="history" hidden>
+    <h2>Your sessions</h2>
+    <ul data-testid="history"></ul>
+    <p>Level: <b data-testid="badge-label"></b> · XP: <b data-testid="xp"></b></p>
+  </section>
+</main>
+<script>
+const $ = (id) => document.querySelector(`[data-testid="${id}"]`);
+const api = async (path, opts = {}) => {
+  const res = await fetch(path, { headers: { 'content-type': 'application/json' }, ...opts });
+  return res.json();
+};
+let sessionId = null;
+
+(async () => {
+  const list = await api('/api/users');
+  $('login-user').innerHTML = list.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
+})();
+
+$('login-btn').onclick = async () => {
+  const me = await api('/api/login', { method: 'POST', body: JSON.stringify({ username: $('login-user').value }) });
+  $('whoami').textContent = me.username;
+  document.getElementById('login').hidden = true;
+  document.getElementById('setup').hidden = false;
+  const personas = await api('/api/personas');
+  $('persona-select').innerHTML = personas.map(p => `<option value="${p.id}">${p.name}, ${p.specialty} (${p.disposition})</option>`).join('');
+  const focus = await api('/api/focus-areas');
+  $('focus-select').innerHTML = focus.map(f => `<option value="${f}">${f}</option>`).join('');
+  await refreshHistory();
+};
+
+$('start-btn').onclick = async () => {
+  const s = await api('/api/sessions', { method: 'POST', body: JSON.stringify({ personaId: $('persona-select').value, focus: $('focus-select').value }) });
+  sessionId = s.id;
+  $('transcript').innerHTML = '';
+  document.getElementById('session').hidden = false;
+  document.getElementById('results').hidden = true;
+};
+
+$('send-btn').onclick = async () => {
+  const text = $('rep-input').value.trim();
+  if (!text) return;
+  const reply = await api(`/api/sessions/${sessionId}/turns`, { method: 'POST', body: JSON.stringify({ text }) });
+  const add = (cls, who, t) => { const p = document.createElement('p'); p.className = cls; p.textContent = `${who}: ${t}`; $('transcript').appendChild(p); };
+  add('rep', 'You', text);
+  add('hcp', 'Doctor', reply.text);
+  $('rep-input').value = '';
+};
+
+$('end-btn').onclick = async () => {
+  const r = await api(`/api/sessions/${sessionId}/end`, { method: 'POST' });
+  $('score').textContent = r.result.score;
+  $('session-id').textContent = r.id;
+  $('feedback').innerHTML = '';
+  for (const f of r.result.feedback) {
+    const li = document.createElement('li');
+    li.dataset.testid = 'feedback-item';
+    li.textContent = f.evidence ? `${f.message} ("${f.evidence}")` : f.message;
+    $('feedback').appendChild(li);
+  }
+  document.getElementById('session').hidden = true;
+  document.getElementById('results').hidden = false;
+  await refreshHistory();
+};
+
+async function refreshHistory() {
+  const me = await api('/api/me');
+  if (me.role !== 'rep') return;
+  const mine = await api('/api/sessions');
+  $('history').innerHTML = mine.map(s => `<li data-testid="history-item" data-session-id="${s.id}">${s.id}: score ${s.score ?? 'in progress'}</li>`).join('');
+  const b = await api('/api/badges');
+  $('badge-label').textContent = b.label;
+  $('xp').textContent = b.xp;
+  document.getElementById('history').hidden = false;
+}
+</script>
+</body>
+</html>

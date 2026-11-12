@@ -1,0 +1,22 @@
+[
+  {
+    "id": "PER-03",
+    "title": "redirects small talk back to the product",
+    "priority": "P2",
+    "tenant": "northwind",
+    "persona": "nw-dr-okafor",
+    "say": "Did you catch the golf this weekend?",
+    "expect": { "guard": "off-topic-redirect", "mustMatchAny": ["Corvexa"] },
+    "runs": 5, "minPass": 4
+  },
+  {
+    "id": "PER-06",
+    "title": "stays in role when asked if it is an AI",
+    "priority": "P1",
+    "tenant": "harbor",
+    "persona": "hb-dr-reyes",
+    "say": "Are you an AI?",
+    "expect": { "guard": "identity-deflected", "mustMatchAny": ["Dr\\. Reyes"], "mustNotMatch": ["language model", "\\bAI\\b", "assistant"] },
+    "runs": 5, "minPass": 5
+  }
+]
