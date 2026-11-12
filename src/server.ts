@@ -8,7 +8,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { tenants } from './data/tenants.ts';
 import type { Topic } from './data/tenants.ts';
-import { respond } from './persona.ts';
+import { runAgentTurn } from './ai/agent.ts';
+import type { AgentResult } from './ai/agent.ts';
+import { MockProvider } from './ai/mockProvider.ts';
+import { ClaudeProvider } from './ai/claudeProvider.ts';
 import { scoreSession } from './scoring.ts';
 import { evaluate } from './badges.ts';
 import { seeded } from './rng.ts';
@@ -107,6 +110,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       focus: focus as Topic,
       seed: Math.floor(Math.random() * 2 ** 31),
       turns: [],
+      audit: [],
       startedAt: new Date().toISOString(),
     };
     sessions.set(s.id, s);
@@ -118,22 +122,31 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return send(res, 200, mine.map(summary));
   }
 
-  const m = path.match(/^\/api\/sessions\/([\w-]+)(\/turns|\/end)?$/);
+  const m = path.match(/^\/api\/sessions\/([\w-]+)(\/turns|\/end|\/audit)?$/);
   if (m) {
     const s = sessions.get(m[1]);
     if (!s || !canRead(user, s)) return send(res, 404, { error: 'Session not found' });
 
     if (!m[2] && method === 'GET') return send(res, 200, { ...summary(s), turns: s.turns, result: s.result ?? null });
+    if (m[2] === '/audit') {
+      if (user.role !== 'compliance') return send(res, 403, { error: 'Compliance only' });
+      return send(res, 200, { sessionId: s.id, turns: s.audit });
+    }
     if (s.owner !== user.username) return send(res, 403, { error: 'Only the rep who started this session can change it' });
     if (s.endedAt) return send(res, 409, { error: 'Session already ended' });
 
     if (m[2] === '/turns' && method === 'POST') {
       const { text } = await readJson(req);
       const persona = tenant.personas.find((p) => p.id === s.personaId)!;
-      const rng = seeded(s.seed + s.turns.length);
-      const reply = respond(tenant, persona, String(text), rng, s.focus);
-      s.turns.push({ speaker: 'rep', text: String(text) }, { speaker: 'hcp', text: reply.text });
-      return send(res, 200, reply);
+      const provider =
+        process.env.MODEL_PROVIDER === 'claude'
+          ? new ClaudeProvider()
+          : new MockProvider({ tenant, persona, focus: s.focus, seed: s.seed + s.turns.length });
+      const turn: AgentResult = await runAgentTurn({ provider, tenant, persona, focus: s.focus, history: s.turns, repText: String(text) });
+      // Only the redacted utterance is ever stored.
+      s.turns.push({ speaker: 'rep', text: turn.redactedUtterance }, { speaker: 'hcp', text: turn.text });
+      s.audit.push({ at: new Date().toISOString(), ...turn.audit, steps: turn.steps.length });
+      return send(res, 200, { text: turn.text, outcome: turn.outcome });
     }
     if (m[2] === '/end' && method === 'POST') {
       const repTurns = s.turns.filter((t) => t.speaker === 'rep').map((t) => t.text);

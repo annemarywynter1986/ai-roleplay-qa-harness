@@ -6,8 +6,19 @@
 //   leak         other customers' products and personas become visible
 //   score-drift  score noise grows from ±2 to ±15 points
 //   demote-early demotion fires after 2 missed weeks instead of 3
+//   no-gate      the agent loop's compliance gate is switched off
+//   no-redact    PHI redaction is switched off
+//   leak-draft   retrieval stops filtering out draft and withdrawn content
 
-export type Fault = 'hallucinate' | 'injection' | 'leak' | 'score-drift' | 'demote-early';
+export type Fault =
+  | 'hallucinate'
+  | 'injection'
+  | 'leak'
+  | 'score-drift'
+  | 'demote-early'
+  | 'no-gate'
+  | 'no-redact'
+  | 'leak-draft';
 
 export function faultOn(name: Fault): boolean {
   const raw = process.env.MOCK_FAULTS ?? '';

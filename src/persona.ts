@@ -4,7 +4,7 @@
 // Wording varies with the seeded RNG, so tests must judge behavior, not exact text.
 
 import type { Persona, Tenant, Topic } from './data/tenants.ts';
-import { tenants } from './data/tenants.ts';
+import { activeFacts, tenants } from './data/tenants.ts';
 import { faultOn } from './faults.ts';
 import { pick } from './rng.ts';
 import type { Rng } from './rng.ts';
@@ -46,7 +46,7 @@ function otherProductNames(tenant: Tenant): string[] {
     .flatMap((t) => [t.drug.brand, t.drug.generic]);
 }
 
-function detectTopic(text: string): Topic | null {
+export function detectTopic(text: string): Topic | null {
   for (const [topic, re] of TOPIC_PATTERNS) if (re.test(text)) return topic;
   return null;
 }
@@ -84,7 +84,7 @@ export function respond(tenant: Tenant, persona: Persona, repText: string, rng: 
   if (other) {
     if (faultOn('leak')) {
       const owner = Object.values(tenants).find((t) => t.drug.brand === other || t.drug.generic === other)!;
-      return { text: owner.approvedFacts[0].text, guard: null, factIds: [owner.approvedFacts[0].id] };
+      return { text: activeFacts(owner)[0].text, guard: null, factIds: [activeFacts(owner)[0].id] };
     }
     return {
       text: `I'm not familiar with ${other}. Let's stick to ${brand}.`,
@@ -132,7 +132,7 @@ export function respond(tenant: Tenant, persona: Persona, repText: string, rng: 
 
   // 7. Answer from approved content only.
   const topic = detectTopic(repText) ?? focus ?? null;
-  const fact = topic ? tenant.approvedFacts.find((f) => f.topic === topic) : undefined;
+  const fact = topic ? activeFacts(tenant).find((f) => f.topic === topic) : undefined;
   if (fact) {
     const text = skeptic
       ? `${pick(rng, ['Okay.', 'Hm.', 'Right.'])} ${fact.text} ${pick(rng, [

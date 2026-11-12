@@ -3,6 +3,7 @@ name: tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -42,3 +43,24 @@ jobs:
             exit 1
           fi
           echo "Suite caught the injected faults."
+
+  # Real-model evals. Manual trigger only (they cost money). Needs an
+  # ANTHROPIC_API_KEY repository secret.
+  claude-evals:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run eval:claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: claude-eval-results
+          path: eval-results/

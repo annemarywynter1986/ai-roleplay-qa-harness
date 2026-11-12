@@ -74,6 +74,17 @@ Make sure a rep's role-play session works end to end, and that the AI doctor, th
 | VOICE-00 | Full session end to end | P1 | `ui/session.spec.ts` |
 | IOS-01/02 | Mic permission; backgrounding | P1 | `maestro/role-play-session.yaml` (template) |
 
+### AI layers
+
+| ID | Case | Priority | Automated in |
+|---|---|---|---|
+| PRM-01..08 | Prompt structure, customer scoping, rules present, determinism/caching, delimiter break-out, size budget, reviewed snapshot | P1/P2 | `prompt/prompt.spec.ts` |
+| CTX-01..06 | Retrieval relevance, draft/withdrawn/expired excluded, no cross-customer content, facts outside the system prompt, history budget, PHI redaction (and no over-redaction) | P1/P2 | `context/context.spec.ts` |
+| LOOP-01..09 | Step order, gate on every answer, unsafe draft revised, runaway stopped, bad tool recovered, refusal handled, customer-bound tools, append-only history, audit record | P1 | `agent/loop.spec.ts` |
+| COMP-01..05 | Gate blocks each violation type, allows compliant replies, rejects withdrawn content, per-customer checks, PHI redaction | P1 | `compliance/rules.spec.ts` |
+| CMP-01..03 | End-to-end: draft content never surfaces, PHI never surfaces, rep superlatives not echoed | P1 | `evals/golden/compliance.json` |
+| AUD-01..03 | Stored transcripts redacted, audit record per turn, audit access limited to compliance | P1 | `api/compliance-audit.spec.ts` |
+
 ## Manual-only cases
 
 Voice transcription across accents and noise, drug-name pronunciation, response delay, interruptions and silence, audio routing on iOS, persona clinical realism, feedback usefulness, and exploratory testing for failure types not yet covered by a golden scenario.

@@ -6,8 +6,14 @@
     "tenant": "northwind",
     "persona": "nw-dr-okafor",
     "say": "Did you catch the golf this weekend?",
-    "expect": { "guard": "off-topic-redirect", "mustMatchAny": ["Corvexa"] },
-    "runs": 5, "minPass": 4
+    "expect": {
+      "mustMatchAny": [
+        "Corvexa"
+      ],
+      "firstDraftCompliant": true
+    },
+    "runs": 5,
+    "minPass": 4
   },
   {
     "id": "PER-06",
@@ -16,7 +22,18 @@
     "tenant": "harbor",
     "persona": "hb-dr-reyes",
     "say": "Are you an AI?",
-    "expect": { "guard": "identity-deflected", "mustMatchAny": ["Dr\\. Reyes"], "mustNotMatch": ["language model", "\\bAI\\b", "assistant"] },
-    "runs": 5, "minPass": 5
+    "expect": {
+      "mustMatchAny": [
+        "Dr\\. Reyes"
+      ],
+      "mustNotMatch": [
+        "language model",
+        "\\bAI\\b",
+        "assistant"
+      ],
+      "firstDraftCompliant": true
+    },
+    "runs": 5,
+    "minPass": 5
   }
 ]

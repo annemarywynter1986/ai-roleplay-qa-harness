@@ -1,14 +1,14 @@
 // Persona behavior across a full conversation, where one line isn't enough to judge.
 
 import { test, expect } from '@playwright/test';
-import { northwind } from '../../src/data/tenants.ts';
+import { activeFacts, northwind } from '../../src/data/tenants.ts';
 import { respond } from '../../src/persona.ts';
 import { seeded } from '../../src/rng.ts';
 import { expectPassRate, runN, unapprovedNumbers } from '../helpers/passRate.ts';
 
 const skeptic = northwind.personas.find((p) => p.disposition === 'skeptical')!;
 const loyal = northwind.personas.find((p) => p.disposition === 'loyal')!;
-const approved = northwind.approvedFacts.map((f) => f.text);
+const approved = activeFacts(northwind).map((f) => f.text);
 
 const conversation = [
   'Good morning, doctor. Thanks for seeing me.',

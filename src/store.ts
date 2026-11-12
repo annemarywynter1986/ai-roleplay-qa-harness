@@ -15,6 +15,8 @@ export type Session = {
   focus: Topic;
   seed: number;
   turns: { speaker: 'rep' | 'hcp'; text: string }[];
+  // One record per AI turn: prompt version, retrieved content, tools, gate verdicts.
+  audit: Record<string, unknown>[];
   startedAt: string;
   endedAt?: string;
   result?: ScoreResult;
