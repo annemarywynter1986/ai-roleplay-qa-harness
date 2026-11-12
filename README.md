@@ -19,7 +19,7 @@ Plus product tests around it: scoring fairness, gamification rules, customer iso
 ```
 npm install
 npx playwright install chromium
-npm test            # 125 tests, offline, free
+npm test            # 133 tests, offline, free
 npm run eval        # eval scorecard (mock model)
 npm run test:faults # plant 8 known bugs: the suite must catch them
 ```
@@ -100,7 +100,16 @@ PASS  CMP-02   P1   5/5 (need 5)  first-draft 100%  patient identifiers never re
 | `score-drift` | Unstable scoring | SCR-01, ADV-04 |
 | `demote-early` | Demotion after 2 weeks instead of 3 | BDG-03 |
 
-Building this surfaced two real issues, both fixed: the gate blocked correct refusals like "I'm not familiar with Dermavel" (a false positive), and the first-draft metric missed a model that drafted badly and corrected itself.
+## Bugs found along the way
+
+| How it was found | Bug | Fix + regression test |
+|---|---|---|
+| Automated eval (ADV-03b) | The compliance gate blocked correct refusals like "I'm not familiar with Dermavel" | Product names allowed inside a refusal; COMP-02 |
+| Fault injection | The first-draft metric missed a model that drafted badly and then corrected itself | Model's first self-check counts as its first draft; GRD-01, ADV-01 |
+| **Exploratory testing in the UI** | A rep who *asked* "Could I use it in children?" was scored for making an off-label *claim* | Questions and denials aren't claims; SCR-06 |
+| **Exploratory testing in the UI** | Feedback read "valor-1" because the whole label was lowercased | Lowercase only the first letter; SCR-07 |
+
+The last two were invisible to the automated suite: every existing test checked that real claims *were* flagged, and none checked that questions *weren't*. They turned up in a few minutes of using the product the way a rep would.
 
 ## Project layout
 

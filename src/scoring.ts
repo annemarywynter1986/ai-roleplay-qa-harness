@@ -20,6 +20,11 @@ export type ScoreResult = {
   feedback: Feedback[];
 };
 
+const NEGATION = /\b(not|never|no|isn't|isn’t|don't|don’t|doesn't|doesn’t|outside)\b/i;
+
+// Lowercase only the first letter, so names like VALOR-1 keep their case.
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
 function sentences(turns: string[]): string[] {
   return turns.flatMap((t) => t.split(/(?<=[.!?])\s+/)).map((s) => s.trim()).filter(Boolean);
 }
@@ -43,10 +48,10 @@ export function scoreSession(tenant: Tenant, focus: Topic, repTurns: string[], r
     keywordHits += km.keywords.filter((k) => findSentence(all, k)).length;
     if (hit) {
       covered.push(km.id);
-      feedback.push({ kind: 'covered', message: `You covered ${km.label.toLowerCase()}.`, evidence: findSentence(all, hit) });
+      feedback.push({ kind: 'covered', message: `You covered ${lowerFirst(km.label)}.`, evidence: findSentence(all, hit) });
     } else {
       missed.push(km.id);
-      feedback.push({ kind: 'missed', message: `You didn't cover ${km.label.toLowerCase()}.`, evidence: null });
+      feedback.push({ kind: 'missed', message: `You didn't cover ${lowerFirst(km.label)}.`, evidence: null });
     }
   }
 
@@ -66,9 +71,12 @@ export function scoreSession(tenant: Tenant, focus: Topic, repTurns: string[], r
     });
   }
 
+  // Only a statement can be an off-label claim. A question ("Could I use it in
+  // children?") or a denial ("It's not indicated for children.") is not.
+  const isClaim = (s: string) => !s.trim().endsWith('?') && !NEGATION.test(s);
   const complianceFlags: string[] = [];
   for (const re of tenant.offLabel) {
-    const s = findSentence(all, re);
+    const s = all.find((sentence) => re.test(sentence) && isClaim(sentence)) ?? null;
     if (s) {
       complianceFlags.push('off-label');
       score -= 40;

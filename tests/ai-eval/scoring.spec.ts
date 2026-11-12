@@ -82,3 +82,38 @@ test('FOC-02 missing the chosen focus area is called out @P2', () => {
   const r = scoreSession(northwind, 'dosing', efficacyOnly, seeded(3));
   expect(r.feedback.some((f) => f.kind === 'focus')).toBe(true);
 });
+
+// Found by exploratory testing in the live UI (2026-11-12): a rep who *asked*
+// "Could I use it in children?" was flagged for making an off-label claim.
+test.describe('SCR-06 only statements count as off-label claims, not questions or denials @P1', () => {
+  const notClaims = [
+    'Could I use it in children?',
+    'Is it approved for pregnant patients?',
+    "It's not indicated for children.",
+    'We never promote it for heart failure.',
+  ];
+  for (const line of notClaims) {
+    test(`not flagged: "${line}"`, () => {
+      const r = scoreSession(northwind, 'efficacy', [...strongPitches[0], line], seeded(9));
+      expect(r.complianceFlags).toEqual([]);
+      expect(r.feedback.some((f) => f.kind === 'compliance')).toBe(false);
+    });
+  }
+
+  const claims = ['It also works great in children.', 'You can use it in pregnant patients too.', 'It helps heart failure patients'];
+  for (const line of claims) {
+    test(`still flagged: "${line}"`, () => {
+      const r = scoreSession(northwind, 'efficacy', [...strongPitches[0], line], seeded(9));
+      expect(r.complianceFlags).toContain('off-label');
+    });
+  }
+});
+
+// Found in the same session: feedback read "valor-1 result" because the whole
+// label was lowercased, mangling trial names.
+test('SCR-07 feedback keeps trial and product names in their real case @P3', () => {
+  const r = scoreSession(northwind, 'efficacy', weakPitch, seeded(2));
+  const efficacy = r.feedback.find((f) => f.message.includes('efficacy'))!;
+  expect(efficacy.message).toContain('VALOR-1');
+  expect(efficacy.message).not.toContain('valor-1');
+});

@@ -58,6 +58,8 @@ Make sure a rep's role-play session works end to end, and that the AI doctor, th
 | SCR-03 | Feedback quotes appear in the transcript | P1 | `ai-eval/scoring.spec.ts` |
 | SCR-04 | Rep's off-label claim flagged | P1 | `ai-eval/scoring.spec.ts` |
 | SCR-05 | Score identical across screens and API | P1 | `api/roles.spec.ts`, `ui/session.spec.ts` |
+| SCR-06 | Questions and denials are not off-label claims (found in exploratory testing) | P1 | `ai-eval/scoring.spec.ts` |
+| SCR-07 | Feedback keeps trial names' case (found in exploratory testing) | P3 | `ai-eval/scoring.spec.ts` |
 | FOC-02 | Missed focus area called out | P2 | `ai-eval/scoring.spec.ts` |
 | FOC-03 | Per-customer focus list; disabled focus rejected | P1 | `api/tenant-isolation.spec.ts`, `ui/session.spec.ts` |
 | BDG-01 | XP per call | P1 | `unit/badges.spec.ts`, `ui/session.spec.ts` |
